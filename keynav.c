@@ -5,6 +5,8 @@
  *      same as wininfo, so use that instead.
  */
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -36,11 +38,15 @@
 #define GLOBAL_CONFIG_FILE "/etc/keynavrc"
 #endif /* GLOBAL_CONFIG_FILE */
 
-extern char **environ;
-char **g_argv;
+#define COLOR_RED 0.6
+#define COLOR_GREEN 0.6
+#define COLOR_BLUE 0.6
 
 #define ISACTIVE (appstate.active)
 #define ISDRAGGING (appstate.dragging)
+
+extern char **environ;
+char **g_argv;
 
 struct appstate {
   int active;
@@ -683,7 +689,7 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
 
   if (draw) {
     cairo_new_path(canvas_cairo);
-    cairo_set_source_rgb(canvas_cairo, 1, 1, 1);
+    cairo_set_source_rgb(canvas_cairo, COLOR_RED, COLOR_GREEN, COLOR_BLUE);
     cairo_rectangle(canvas_cairo, 0, 0, w, h);
     cairo_set_line_width(canvas_cairo, wininfo.border_thickness);
     cairo_fill(canvas_cairo);
