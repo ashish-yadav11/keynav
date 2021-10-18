@@ -2061,7 +2061,7 @@ int main(int argc, char **argv) {
       case DestroyNotify: // window was destroyed
       case UnmapNotify:   // window was unmapped (hidden)
       case MappingNotify: // when keyboard mapping changes
-      case MotionNotify: // when mouse movement is detected
+      case MotionNotify:  // when mouse movement is detected
         break;
       default:
         if (e.type == xrandr_event_base + RRScreenChangeNotify) {
