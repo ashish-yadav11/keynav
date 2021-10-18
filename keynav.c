@@ -198,41 +198,41 @@ typedef struct dispatch {
 } dispatch_t;
 
 dispatch_t dispatch[] = {
-  "cut-up", cmd_cut_up,
-  "cut-down", cmd_cut_down,
-  "cut-left", cmd_cut_left,
-  "cut-right", cmd_cut_right,
-  "move-up", cmd_move_up,
-  "move-down", cmd_move_down,
-  "move-left", cmd_move_left,
-  "move-right", cmd_move_right,
-  "cursorzoom", cmd_cursorzoom,
-  "windowzoom", cmd_windowzoom,
+  { "cut-up", cmd_cut_up },
+  { "cut-down", cmd_cut_down },
+  { "cut-left", cmd_cut_left },
+  { "cut-right", cmd_cut_right },
+  { "move-up", cmd_move_up },
+  { "move-down", cmd_move_down },
+  { "move-left", cmd_move_left },
+  { "move-right", cmd_move_right },
+  { "cursorzoom", cmd_cursorzoom },
+  { "windowzoom", cmd_windowzoom },
 
   // Grid commands
-  "grid", cmd_grid,
-  "grid-nav", cmd_grid_nav,
-  "cell-select", cmd_cell_select,
+  { "grid", cmd_grid },
+  { "grid-nav", cmd_grid_nav },
+  { "cell-select", cmd_cell_select },
 
   // Mouse activity
-  "warp", cmd_warp,
-  "click", cmd_click,
-  "doubleclick", cmd_doubleclick,
-  "drag", cmd_drag,
+  { "warp", cmd_warp },
+  { "click", cmd_click },
+  { "doubleclick", cmd_doubleclick },
+  { "drag", cmd_drag },
 
   // Other commands.
-  "loadconfig", cmd_loadconfig,
-  "daemonize", cmd_daemonize,
-  "sh", cmd_shell,
-  "start", cmd_start,
-  "end", cmd_end,
-  "toggle-start", cmd_toggle_start,
-  "history-back", cmd_history_back,
-  "quit", cmd_quit,
-  "restart", cmd_restart,
-  "record", cmd_record,
-  "playback", cmd_playback,
-  NULL, NULL,
+  { "loadconfig", cmd_loadconfig },
+  { "daemonize", cmd_daemonize },
+  { "sh", cmd_shell },
+  { "start", cmd_start },
+  { "end", cmd_end },
+  { "toggle-start", cmd_toggle_start },
+  { "history-back", cmd_history_back },
+  { "quit", cmd_quit },
+  { "restart", cmd_restart },
+  { "record", cmd_record },
+  { "playback", cmd_playback },
+  { NULL }
 };
 
 typedef struct keybinding {
@@ -254,7 +254,6 @@ int parse_mods(char *keyseq) {
   char *tokctx;
   char *strptr;
   char *tok;
-  char *last_tok;
   char *dup;
   GPtrArray *mods;
   int modmask = 0;
@@ -385,7 +384,7 @@ void parse_binding(char *keyseq, char *commands) {
   char *tokctx;
   char *strptr;
   char *tok;
-  char *last_tok;
+  char *last_tok = "";
   char *dup;
   int keysym;
   int nomatch = 1, keycode, maxkeycode;
@@ -466,8 +465,6 @@ void parse_config_file(const char* file) {
 }
 
 void parse_config() {
-  char *homedir;
-
   keybindings = g_ptr_array_new();
   startkeys = g_ptr_array_new();
   recordings = g_ptr_array_new();
@@ -910,7 +907,6 @@ void grab_keyboard() {
 
 void cmd_start(char *args) {
   XSetWindowAttributes winattr;
-  int i;
   int screen;
 
   screen = query_current_screen();
@@ -936,8 +932,6 @@ void cmd_start(char *args) {
   if (ISACTIVE)
     return;
 
-  int depth;
-
   appstate.active = True;
   appstate.need_draw = 1;
   appstate.need_moveresize = 1;
@@ -945,7 +939,6 @@ void cmd_start(char *args) {
   if (zone == 0) { /* Create our window for the first time */
     viewport_t *viewport = &(viewports[wininfo.curviewport]);
 
-    depth = viewports[wininfo.curviewport].screen->root_depth;
     wininfo_history_cursor = 0;
 
     zone = XCreateSimpleWindow(dpy, viewport->root,
@@ -1047,12 +1040,11 @@ void cmd_shell(char *args) {
   }
 
   if (fork() == 0) { /* child */
-    int ret;
     char *const shell = "/bin/sh";
     char *const argv[4] = { shell, "-c", args, NULL };
     //printf("Exec: %s\n", args);
     //printf("Shell: %s\n", shell);
-    ret = execvp(shell, argv);
+    execvp(shell, argv);
     perror("execve");
     exit(1);
   }
@@ -1120,7 +1112,7 @@ void cmd_move_right(char *args) {
 }
 
 void cmd_cursorzoom(char *args) {
-  int xradius = 0, yradius = 0, width = 0, height = 0;
+  int width = 0, height = 0;
   int xloc, yloc;
   if (!ISACTIVE)
     return;
@@ -1280,7 +1272,6 @@ void cmd_grid(char *args) {
 
 void cmd_cell_select(char *args) {
   int row, col, z;
-  int cell_width, cell_height;
   row = col = z = 0;
 
   // Try to parse 'NxM' where N and M are a number.
@@ -1338,7 +1329,6 @@ void cmd_playback(char *args) {
 }
 
 void cmd_record(char *args) {
-  char *filename;
   if (!ISACTIVE)
     return;
 
@@ -1646,7 +1636,7 @@ handler_info_t handle_gridnav(XKeyEvent *e) {
 
 void handle_commands(char *commands) {
   char *cmdcopy;
-  char *tokctx, *tok, *strptr, *copyptr;
+  char *tok, *strptr, *copyptr;
   int is_quoted, is_escaped;
 
   //printf("Commands; %s\n", commands);
@@ -1829,7 +1819,6 @@ void query_screen_normal() {
 }
 
 int query_current_screen() {
-  int i;
   if (xinerama) {
     return query_current_screen_xinerama();
   } else {
@@ -1862,7 +1851,6 @@ int query_current_screen_normal() {
   unsigned int dummyuint;
   int x, y;
   Window dummywin;
-  Window root = viewports[0].root;
   /* Query each Screen's root window to ask if the pointer is in it.
    * I don't know of any other better way to ask what Screen is
    * active (where is the cursor) */
@@ -1961,7 +1949,6 @@ void parse_recordings(const char *filename) {
 
 int main(int argc, char **argv) {
   char *pcDisplay;
-  int ret;
   const char *prog = argv[0];
 
   g_argv = argv;
