@@ -2003,7 +2003,7 @@ int main(int argc, char **argv) {
 
   if (daemonize) {
     printf("Daemonizing now...\n");
-    daemon(0, 0);
+    daemon(1, 1);
     is_daemon = True;
   }
 
