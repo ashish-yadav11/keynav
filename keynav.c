@@ -250,39 +250,6 @@ typedef struct startkey {
 
 GPtrArray *startkeys = NULL;
 
-int parse_keycode(char *keyseq) {
-  char *tokctx;
-  char *strptr;
-  char *tok;
-  char *last_tok;
-  char *dup;
-  int keycode = 0;
-  int keysym = 0;
-
-  strptr = dup = strdup(keyseq);
-  //printf("finding keycode for %s\n", keyseq);
-  while ((tok = strtok_r(strptr, "+", &tokctx)) != NULL) {
-    last_tok = tok;
-    strptr = NULL;
-  }
-
-  keysym = XStringToKeysym(last_tok);
-  if (keysym == NoSymbol) {
-    fprintf(stderr, "No keysym found for '%s' in sequence '%s'\n",
-            last_tok, keyseq);
-    /* At this point, we'll be returning 0 for keycode */
-  } else {
-    /* Valid keysym */
-    keycode = XKeysymToKeycode(dpy, keysym);
-    if (keycode == 0) {
-      fprintf(stderr, "Unable to lookup keycode for %s\n", last_tok);
-    }
-  }
-
-  free(dup);
-  return keycode;
-}
-
 int parse_mods(char *keyseq) {
   char *tokctx;
   char *strptr;
@@ -325,16 +292,16 @@ int parse_mods(char *keyseq) {
     if ((keysym == XK_Super_L) || (keysym == XK_Super_R)
         || (keysym == XK_Hyper_L) || (keysym == XK_Hyper_R))
       modmask |= Mod4Mask;
-    if (!strcasecmp(mod, "mod1"))
+    if (strcasecmp(mod, "mod1") == 0)
       modmask |= Mod1Mask;
     // See masking of state in handle_keypress
-    if (!strcasecmp(mod, "mod2"))
+    if (strcasecmp(mod, "mod2") == 0)
       printf("Error in configuration: keynav does not support mod2 modifier, but other modifiers are supported.");
-    if (!strcasecmp(mod, "mod3"))
+    if (strcasecmp(mod, "mod3") == 0)
       modmask |= Mod3Mask;
-    if (!strcasecmp(mod, "mod4"))
+    if (strcasecmp(mod, "mod4") == 0)
       modmask |= Mod4Mask;
-    if (!strcasecmp(mod, "mod5"))
+    if (strcasecmp(mod, "mod5") == 0)
       modmask |= Mod5Mask;
 
     /* 'xmodmap' will output the current modN:KeySym mappings */
@@ -412,6 +379,42 @@ void addbinding(int keycode, int mods, char *commands) {
       }
     }
   } /* special config handling for 'record' */
+}
+
+void parse_binding(char *keyseq, char *commands) {
+  char *tokctx;
+  char *strptr;
+  char *tok;
+  char *last_tok;
+  char *dup;
+  int keysym;
+  int nomatch = 1, keycode, maxkeycode;
+  int mods = parse_mods(keyseq);
+
+  strptr = dup = strdup(keyseq);
+  //printf("finding keycode for %s\n", keyseq);
+  while ((tok = strtok_r(strptr, "+", &tokctx)) != NULL) {
+    last_tok = tok;
+    strptr = NULL;
+  }
+
+  keysym = XStringToKeysym(last_tok);
+  if (keysym == NoSymbol) {
+    fprintf(stderr, "No keysym found for '%s' in sequence '%s'\n",
+            last_tok, keyseq);
+    return;
+  }
+  XDisplayKeycodes(dpy, &keycode, &maxkeycode);
+  for (; keycode <= maxkeycode; keycode++) {
+    if (XKeycodeToKeysym(dpy, keycode, 0) == keysym) {
+      nomatch = 0;
+      addbinding(keycode, mods, commands);
+    }
+  }
+  if (nomatch) {
+    fprintf(stderr, "Unable to lookup keycode for %s\n", last_tok);
+  }
+  free(dup);
 }
 
 void parse_config_file(const char* file) {
@@ -496,7 +499,7 @@ void defaults() {
     "Escape end",
     "ctrl+bracketleft end", /* for vi people who use ^[ */
     "q record ~/.keynav_macros",
-    "shift+at playback",
+    "shift+2 playback",
     "a history-back",
     "h cut-left",
     "j cut-down",
@@ -556,7 +559,6 @@ int parse_config_line(char *orig_line) {
   char *line = strdup(orig_line);
   char *tokctx;
   char *keyseq;
-  int keycode, mods;
   int i, j;
   char *comment;
 
@@ -603,13 +605,6 @@ int parse_config_line(char *orig_line) {
   } else if (strcmp(keyseq, "loadconfig") == 0) {
     handle_commands(keyseq);
   } else {
-    keycode = parse_keycode(keyseq);
-    if (keycode == 0) {
-      fprintf(stderr, "Problem parsing keysequence '%s'\n", keyseq);
-      return 1;
-    }
-    mods = parse_mods(keyseq);
-
     /* FreeBSD sets 'tokctx' to NULL at end of string.
      * glibc sets 'tokctx' to the next character (the '\0')
      * Reported by Richard Kolkovich */
@@ -617,8 +612,7 @@ int parse_config_line(char *orig_line) {
       fprintf(stderr, "Incomplete configuration line. Missing commands: '%s'\n", line);
       return 1;
     }
-
-    addbinding(keycode, mods, tokctx /* the remainder of the line */);
+    parse_binding(keyseq, tokctx);
   }
 
   free(keyseq);

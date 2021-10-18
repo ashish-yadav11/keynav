@@ -3,6 +3,7 @@ CFLAGS+=$(shell pkg-config --cflags xinerama 2> /dev/null)
 CFLAGS+=$(shell pkg-config --cflags glib-2.0 2> /dev/null)
 CFLAGS+=$(shell pkg-config --cflags x11 2> /dev/null)
 CFLAGS+=$(shell pkg-config --cflags xrandr 2> /dev/null)
+CFLAGS+=-Wno-deprecated-declarations
 
 LDFLAGS+=$(shell pkg-config --libs cairo-xlib 2> /dev/null)
 LDFLAGS+=$(shell pkg-config --libs xinerama 2> /dev/null)
